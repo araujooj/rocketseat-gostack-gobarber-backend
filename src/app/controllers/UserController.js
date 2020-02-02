@@ -32,7 +32,7 @@ class UserController {
     });
   }
 
-  async show(req, res) {
+  async index(req, res) {
     const users = await User.findAll(req.body);
     if (!users) {
       return res.status(404).json({ error: 'Not found any users' });
