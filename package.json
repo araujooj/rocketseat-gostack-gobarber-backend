@@ -1,12 +1,13 @@
 {
   "name": "Modulo02-goBarber",
   "version": "1.0.0",
-  "main": "app.js",
+  "main": "src/server.js",
   "author": "Gabriel Araujo",
   "license": "MIT",
   "scripts": {
     "start": "nodemon src/server.js",
-    "start:debug": "nodemon --inspect src/server.js"
+    "dev": "nodemon src/server.js",
+    "dev:debug": "nodemon --inspect src/server.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
