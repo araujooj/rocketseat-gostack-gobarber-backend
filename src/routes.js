@@ -14,6 +14,11 @@ import AuthMiddleware from './app/middlewares/auth';
 const routes = new Router();
 const upload = multer(multerConfig);
 
+routes.get('/', (req, res) => {
+  res.json({
+    hello: true,
+  });
+});
 // login
 routes.post('/sessions', SessionController.store);
 // signup
@@ -30,6 +35,5 @@ routes.post('/files', upload.single('file'), FileController.store);
 
 routes.put('/users', UserController.update);
 routes.get('/users', UserController.index);
-
 
 export default routes;
