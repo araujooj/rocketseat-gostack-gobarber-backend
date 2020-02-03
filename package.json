@@ -1,17 +1,18 @@
 {
   "name": "Modulo02-goBarber",
   "version": "1.0.0",
-  "main": "index.js",
+  "main": "app.js",
   "author": "Gabriel Araujo",
   "license": "MIT",
   "scripts": {
-    "dev": "nodemon src/server.js",
-    "dev:debug": "nodemon --inspect src/server.js"
+    "start": "nodemon src/server.js",
+    "start:debug": "nodemon --inspect src/server.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
     "date-fns": "^2.0.0-beta.5",
     "eslint-config-prettier": "^6.10.0",
+    "nodemon": "^2.0.2",
     "express": "^4.17.1",
     "jsonwebtoken": "^8.5.1",
     "mongoose": "^5.8.11",
@@ -26,7 +27,6 @@
   "devDependencies": {
     "eslint": "^6.8.0",
     "eslint-config-airbnb-base": "^14.0.0",
-    "eslint-plugin-import": "^2.20.0",
-    "nodemon": "^2.0.2"
+    "eslint-plugin-import": "^2.20.0"
   }
 }
