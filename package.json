@@ -5,7 +5,7 @@
   "author": "Gabriel Araujo",
   "license": "MIT",
   "scripts": {
-    "start": "nodemon src/server.js",
+    "start": "sucrase-node src/server.js",
     "dev": "nodemon src/server.js",
     "dev:debug": "nodemon --inspect src/server.js"
   },
