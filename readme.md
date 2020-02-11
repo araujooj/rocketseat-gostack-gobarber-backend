@@ -14,88 +14,104 @@ contém o backend da aplicação, onde residem a base de conceitos e prática pa
 <blockquote align="center">“Sempre passar o que você aprendeu. - Mestre Yoda”</blockquote>
 
 <p align="center">
-  <a href="#rocket-sobre-o-desafio">Sobre a aplicação</a>&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;
+  <a href="#rocket-sobre-a=aplicacao">Sobre a aplicação</a>&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;
   <a href="#-funcionalides">Funcionalidades</a>&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;
-  <a href="#memo-licença">Licença</a>
+  <a href="#-exemplo">Licença</a>
 </p>
 
 ## :rocket: Sobre a aplicação
 
-A aplicação GoBarber é uma plataforma de agendamento de serviços de estética, tendo
+A aplicação GoBarber é uma plataforma de agendamento de serviços de estética, tendo em vista duas pontas: O prestador e o usuário. Com várias regras de negócio por conta dos horários envolvidos.
 
 ### **Funcionalidades**
 
-Você deverá criar a aplicação do zero utilizando o [Express](https://expressjs.com/), além de precisar configurar as seguintes ferramentas:
+Aplicação foi criada utilizando [Express](https://expressjs.com/), além utilizar as seguintes ferramentas:
 
 - Sucrase + Nodemon;
 - ESLint + Prettier + EditorConfig;
-- Sequelize (Utilize PostgreSQL ou MySQL);
+- Sequelize (PostgreSQL);
+- Filas com Redis e Bee Queue
+- Emails com NodeMailer
+- MongoDB
 
-### **Conceitos**
+### **Exemplo**
+`Método de Agendamento: `
+```js
+async store(req, res) {
+    const schema = Yup.object().shape({
+      date: Yup.date().required(),
+      provider_id: Yup.number().required(),
+    });
 
-Abaixo estão descritas as funcionalidades que você deve adicionar em sua aplicação.
+    if (!(await schema.isValid(req.body))) {
+      return res.status(400).json({ error: 'Validation failed' });
+    }
 
-### **1. Autenticação**
+    const { provider_id, date } = req.body;
 
-Permita que um usuário se autentique em sua aplicação utilizando e-mail e uma senha.
+    /* Check if provider_id is a provider */
+    const checkIsProvider = await User.findOne({
+      where: { id: provider_id, provider: true },
+    });
+    const checkIsTheSame = await User.findOne({
+      where: { id: req.userId, provider: true },
+    });
 
-Crie um usuário administrador utilizando a funcionalidade de [seeds do sequelize](https://sequelize.org/master/manual/migrations.html#creating-first-seed), essa funcionalidade serve para criarmos registros na base de dados de forma automatizada.
+    if (checkIsTheSame) {
+      return res.status(401).json({
+        error: 'You can not make a appointment with yourself',
+      });
+    }
 
-Para criar um seed utilize o comando:
+    if (!checkIsProvider) {
+      return res.status(401).json({
+        error: 'You can only create appointments with providers',
+      });
+    }
 
-    yarn sequelize seed:generate --name admin-user
-
-No arquivo gerado na pasta `src/database/seeds` adicione o código referente à criação de um usuário administrador:
-
-    const bcrypt = require("bcryptjs");
-
-    module.exports = {
-      up: QueryInterface => {
-        return QueryInterface.bulkInsert(
-          "users",
-          [
-            {
-              name: "Distribuidora FastFeet",
-              email: "admin@fastfeet.com",
-              password_hash: bcrypt.hashSync("123456", 8),
-              created_at: new Date(),
-              updated_at: new Date()
-            }
-          ],
-          {}
-        );
+    const hourStart = startOfHour(parseISO(date));
+    /* Check for past dates */
+    if (isBefore(hourStart, new Date())) {
+      return res.status(400).json({
+        error: 'Past dates are not permitted',
+      });
+    }
+    /* Check date availability */
+    const checkAvailability = await Appointment.findOne({
+      where: {
+        provider_id,
+        canceled_at: null,
+        date: hourStart,
       },
+    });
+    if (checkAvailability) {
+      return res.status(400).json({ error: 'Date not available' });
+    }
+    const appointments = await Appointment.create({
+      user_id: req.userId,
+      provider_id,
+      date: hourStart,
+    });
 
-      down: () => {}
-    };
+    /**
+     *  Notify appointment to provider
+     */
+    const user = await User.findByPk(req.userId);
+    const formattedDate = format(
+      hourStart,
+      "'dia' dd 'de' MMMM', às' H:mm'h' ",
+      { locale: pt },
+    );
+    await Notification.create({
+      content: `Novo agendamento de ${user.name} para ${formattedDate}`,
+      user: provider_id,
+    });
 
-Agora execute:
-
-    yarn sequelize db:seed:all
-
-Agora você tem um usuário na sua base de dados, utilize esse usuário para todos os logins que você fizer.
-
-- A autenticação deve ser feita utilizando JWT.
-- Realize a validação dos dados de entrada;
-
-### 2. Gestão de destinatários
-
-Você agora precisa permitir que destinatários sejam mantidos (cadastrados/atualizados) na aplicação, e esses devem ter o **nome** do destinatário e campos de endereço: **rua**, **número**, **complemento**, **estado**, **cidade** e **CEP**.
-
-Utilize uma nova tabela no banco de dados chamada `recipients` para guardar informações do destinatário.
-
-O cadastro de destinatários só pode ser feito por administradores autenticados na aplicação.
-
-O destinatário não pode se autenticar no sistema, ou seja, não possui senha.
-
-## 📅 Entrega
-
-Esse desafio **não precisa ser entregue** e não receberá correção. Além disso, o código fonte **não está disponível** por fazer parte do **desafio final**, que será corrigido para **certificação** do bootcamp. Após concluir o desafio, adicionar esse código ao seu Github é uma boa forma de demonstrar seus conhecimentos para oportunidades futuras.
-
-## :memo: Licença
-
-Esse projeto está sob a licença MIT. Veja o arquivo [LICENSE](LICENSE.md) para mais detalhes.
+    return res.json(appointments);
+  }
+```
+- Podemos notar várias verificações, tanto em horários quanto em relação ao usuário que está tentando realizar o agendamento, 
+utilizando [Yup](https://github.com/jquense/yup) para a verificação de alguns dados e [date-fns](https://date-fns.org/) para a verificação das datas
 
 ---
-
-Feito com ♥ by Rocketseat :wave: [Entre na nossa comunidade!](https://discordapp.com/invite/gCRAFhc)
+Feito com ♥ by araujooj :wave:
